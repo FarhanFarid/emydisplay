@@ -38,7 +38,13 @@
         family: 0
     })
 
-    const pageSize = 7
+	const pageSizes = {
+		waiting: 15,
+		resus: 10,
+		obs: 10,
+		iso: 10,
+		family: 10
+	}
     let carouselInterval = null
 
     // Fetch and group patients
@@ -80,15 +86,15 @@
 
     // Auto advance pages
     function startCarousel() {
-        carouselInterval = setInterval(() => {
-            Object.keys(patients.value).forEach(cat => {
-            const totalPages = Math.ceil(patients.value[cat].length / pageSize)
-            if (totalPages > 1) {
-                currentPage.value[cat] = (currentPage.value[cat] + 1) % totalPages
-            }
-            })
-        }, 10000) // change page every 5s
-    }
+		carouselInterval = setInterval(() => {
+			Object.keys(patients.value).forEach(cat => {
+			const totalPages = Math.ceil(patients.value[cat].length / pageSizes[cat])
+			if (totalPages > 1) {
+				currentPage.value[cat] = (currentPage.value[cat] + 1) % totalPages
+			}
+			})
+		}, 10000) // change page every 10s
+	}
 
     function stopCarousel() {
         clearInterval(carouselInterval)
@@ -111,9 +117,10 @@
 
     // Computed helper to get only visible patients for a category
     function getVisiblePatients(cat) {
-        const start = currentPage.value[cat] * pageSize
-        return patients.value[cat].slice(start, start + pageSize)
-    }
+		const size = pageSizes[cat]
+		const start = currentPage.value[cat] * size
+		return patients.value[cat].slice(start, start + size)
+	}
 </script>
 
 
@@ -138,224 +145,225 @@
         </div>
 
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+		<div class="grid grid-cols-2 gap-6 h-[1170px]">
+			<!-- Left column -->
+			<div class="flex flex-col gap-6">
+				<!-- Waiting Area (taller) -->
+				<Card title="WAITING AREA" bgColor="bg-sky-50" titleColor="bg-sky-200" class="flex-[2]">
+					<table class="min-w-full text-left border-collapse border border-gray-400">
+						<colgroup>
+							<col style="width: 10%;" />   <!-- MRN -->
+							<col style="width: 12%;" />   <!-- Category -->
+							<col style="width: 15%;" />   <!-- Date -->
+							<col style="width: 13%;" />   <!-- Time -->
+							<col style="width: 50%;" />   <!-- Doctor (biggest) -->
+						</colgroup>
+						<thead class="bg-gray-200 text-lg">
+							<tr>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
+								<th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
+							</tr>
+							<tr>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
+							</tr>
+						</thead>
+						<!-- Use transition-group as tbody -->
+						<transition-group name="fade" tag="tbody">
+							<tr v-if="getVisiblePatients('waiting').length === 0" key="empty">
+								<td colspan="5" class="text-center py-3 text-gray-800 italic">
+									No patients in this area
+								</td>
+							</tr>
+							<tr v-for="patient in getVisiblePatients('waiting')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
+								<td
+									class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
+									:style="{
+										backgroundColor:
+										patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
+										patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
+										patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
+										patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
+										patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
+										''
+									}"
+								>
+								{{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
+								</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
+							</tr>
+						</transition-group>
+					</table>
+				</Card>
 
-            <Card title="WAITING AREA" bgColor="bg-sky-50" titleColor="bg-sky-200" class="h-120">
-                <div class="h-full overflow-hidden relative">
-                    <table class="min-w-full text-left border-collapse border border-gray-400">
-                        <colgroup>
-                            <col style="width: 10%;" />   <!-- MRN -->
-                            <col style="width: 12%;" />   <!-- Category -->
-                            <col style="width: 15%;" />   <!-- Date -->
-                            <col style="width: 13%;" />   <!-- Time -->
-                            <col style="width: 50%;" />   <!-- Doctor (biggest) -->
-                        </colgroup>
-                        <thead class="bg-gray-200 text-lg">
-                            <tr>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
-                                <th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
-                            </tr>
-                            <tr>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
-                            </tr>
-                        </thead>
-                        <!-- Use transition-group as tbody -->
-                        <transition-group name="fade" tag="tbody">
-                            <tr v-if="getVisiblePatients('waiting').length === 0" key="empty">
-                                <td colspan="5" class="text-center py-3 text-gray-800 italic">
-                                    No patients in this area
-                                </td>
-                            </tr>
-                            <tr v-for="patient in getVisiblePatients('waiting')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
-                                <td
-                                    class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
-                                    :style="{
-                                        backgroundColor:
-                                        patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
-                                        patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
-                                        patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
-                                        patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
-                                        patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
-                                        ''
-                                    }"
-                                >
-                                {{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
-                                </td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
-                            </tr>
-                        </transition-group>
-                    </table>
-                </div>
-            </Card>
+				<!-- Isolation (shorter) -->
+				<Card title="ISOLATION ROOM" bgColor="bg-sky-50" titleColor="bg-sky-200" class="flex-[1]">
+					<table class="min-w-full text-left border-collapse border border-gray-400">
+						<colgroup>
+							<col style="width: 10%;" />   <!-- MRN -->
+							<col style="width: 12%;" />   <!-- Category -->
+							<col style="width: 15%;" />   <!-- Date -->
+							<col style="width: 13%;" />   <!-- Time -->
+							<col style="width: 50%;" />   <!-- Doctor (biggest) -->
+						</colgroup>
+						<thead class="bg-gray-200 text-lg">
+							<tr>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
+								<th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
+							</tr>
+							<tr>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
+							</tr>
+						</thead>
+						<!-- Use transition-group as tbody -->
+						<transition-group name="fade" tag="tbody">
+							<tr v-if="getVisiblePatients('iso').length === 0" key="empty">
+								<td colspan="5" class="text-center py-3 text-gray-800 italic">
+									No patients in this area
+								</td>
+							</tr>
+							<tr v-for="patient in getVisiblePatients('iso')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
+								<td
+									class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
+									:style="{
+										backgroundColor:
+										patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
+										patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
+										patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
+										patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
+										patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
+										''
+									}"
+								>
+								{{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
+								</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
+							</tr>
+						</transition-group>
+					</table>
+				</Card>
+			</div>
 
-            <Card title="RESUSCITATION ROOM" bgColor="bg-sky-50" titleColor="bg-sky-200" class="h-120">
-                <div class="h-full overflow-hidden relative">
-                    <table class="min-w-full text-left border-collapse border border-gray-400">
-                        <colgroup>
-                            <col style="width: 10%;" />   <!-- MRN -->
-                            <col style="width: 12%;" />   <!-- Category -->
-                            <col style="width: 15%;" />   <!-- Date -->
-                            <col style="width: 13%;" />   <!-- Time -->
-                            <col style="width: 50%;" />   <!-- Doctor (biggest) -->
-                        </colgroup>
-                        <thead class="bg-gray-200 text-lg">
-                            <tr>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
-                                <th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
-                            </tr>
-                            <tr>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
-                            </tr>
-                        </thead>
-                        <!-- Use transition-group as tbody -->
-                        <transition-group name="fade" tag="tbody">
-                            <tr v-if="getVisiblePatients('resus').length === 0" key="empty">
-                                <td colspan="5" class="text-center py-3 text-gray-800 italic">
-                                    No patients in this area
-                                </td>
-                            </tr>
-                            <tr v-for="patient in getVisiblePatients('resus')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
-                                <td
-                                    class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
-                                    :style="{
-                                        backgroundColor:
-                                        patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
-                                        patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
-                                        patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
-                                        patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
-                                        patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
-                                        ''
-                                    }"
-                                >
-                                {{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
-                                </td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
-                            </tr>
-                        </transition-group>
-                    </table>
-                </div>
-            </Card>
+			<!-- Right column -->
+			<div class="flex flex-col gap-6">
+				<!-- Resus -->
+				<Card title="RESUSCITATION ROOM" bgColor="bg-sky-50" titleColor="bg-sky-200" class="flex-[1]">
+					<table class="min-w-full text-left border-collapse border border-gray-400">
+						<colgroup>
+							<col style="width: 10%;" />   <!-- MRN -->
+							<col style="width: 12%;" />   <!-- Category -->
+							<col style="width: 15%;" />   <!-- Date -->
+							<col style="width: 13%;" />   <!-- Time -->
+							<col style="width: 50%;" />   <!-- Doctor (biggest) -->
+						</colgroup>
+						<thead class="bg-gray-200 text-lg">
+							<tr>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
+								<th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
+							</tr>
+							<tr>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
+							</tr>
+						</thead>
+						<!-- Use transition-group as tbody -->
+						<transition-group name="fade" tag="tbody">
+							<tr v-if="getVisiblePatients('resus').length === 0" key="empty">
+								<td colspan="5" class="text-center py-3 text-gray-800 italic">
+									No patients in this area
+								</td>
+							</tr>
+							<tr v-for="patient in getVisiblePatients('resus')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
+								<td
+									class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
+									:style="{
+										backgroundColor:
+										patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
+										patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
+										patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
+										patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
+										patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
+										''
+									}"
+								>
+								{{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
+								</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
+							</tr>
+						</transition-group>
+					</table>
+				</Card>
 
-            <Card title="EMERGENCY WARD" bgColor="bg-sky-50" titleColor="bg-sky-200" class="h-120">
-                <div class="h-full overflow-hidden relative">
-                    <table class="min-w-full text-left border-collapse border border-gray-400">
-                        <colgroup>
-                            <col style="width: 10%;" />   <!-- MRN -->
-                            <col style="width: 12%;" />   <!-- Category -->
-                            <col style="width: 15%;" />   <!-- Date -->
-                            <col style="width: 13%;" />   <!-- Time -->
-                            <col style="width: 50%;" />   <!-- Doctor (biggest) -->
-                        </colgroup>
-                        <thead class="bg-gray-200 text-lg">
-                            <tr>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
-                                <th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
-                            </tr>
-                            <tr>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
-                            </tr>
-                        </thead>
-                        <!-- Use transition-group as tbody -->
-                        <transition-group name="fade" tag="tbody">
-                            <tr v-if="getVisiblePatients('obs').length === 0" key="empty">
-                                <td colspan="5" class="text-center py-3 text-gray-800 italic">
-                                    No patients in this area
-                                </td>
-                            </tr>
-                            <tr v-for="patient in getVisiblePatients('obs')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
-                                <td
-                                    class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
-                                    :style="{
-                                        backgroundColor:
-                                        patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
-                                        patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
-                                        patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
-                                        patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
-                                        patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
-                                        ''
-                                    }"
-                                >
-                                {{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
-                                </td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
-                            </tr>
-                        </transition-group>
-                    </table>
-                </div>
-            </Card>
-
-            <Card title="ISOLATION ROOM" bgColor="bg-sky-50" titleColor="bg-sky-200" class="h-120">
-                <div class="h-full overflow-hidden relative">
-                    <table class="min-w-full text-left border-collapse border border-gray-400">
-                        <colgroup>
-                            <col style="width: 10%;" />   <!-- MRN -->
-                            <col style="width: 12%;" />   <!-- Category -->
-                            <col style="width: 15%;" />   <!-- Date -->
-                            <col style="width: 13%;" />   <!-- Time -->
-                            <col style="width: 50%;" />   <!-- Doctor (biggest) -->
-                        </colgroup>
-                        <thead class="bg-gray-200 text-lg">
-                            <tr>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
-                                <th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
-                                <th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
-                            </tr>
-                            <tr>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
-                                <th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
-                            </tr>
-                        </thead>
-                        <!-- Use transition-group as tbody -->
-                        <transition-group name="fade" tag="tbody">
-                            <tr v-if="getVisiblePatients('iso').length === 0" key="empty">
-                                <td colspan="5" class="text-center py-3 text-gray-800 italic">
-                                    No patients in this area
-                                </td>
-                            </tr>
-                            <tr v-for="patient in getVisiblePatients('iso')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
-                                <td
-                                    class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
-                                    :style="{
-                                        backgroundColor:
-                                        patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
-                                        patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
-                                        patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
-                                        patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
-                                        patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
-                                        ''
-                                    }"
-                                >
-                                {{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
-                                </td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
-                                <td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
-                            </tr>
-                        </transition-group>
-                    </table>
-                </div>
-            </Card>
-        </div>
+				<!-- Emergency -->
+				<Card title="EMERGENCY WARD" bgColor="bg-sky-50" titleColor="bg-sky-200" class="flex-[1]">
+					<table class="min-w-full text-left border-collapse border border-gray-400">
+						<colgroup>
+							<col style="width: 10%;" />   <!-- MRN -->
+							<col style="width: 12%;" />   <!-- Category -->
+							<col style="width: 15%;" />   <!-- Date -->
+							<col style="width: 13%;" />   <!-- Time -->
+							<col style="width: 50%;" />   <!-- Doctor (biggest) -->
+						</colgroup>
+						<thead class="bg-gray-200 text-lg">
+							<tr>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">MRN</th>
+								<th colspan="3" class="px-2 py-1 text-center border border-gray-400 font-bold">Triage</th>
+								<th rowspan="2" class="px-2 py-1 text-center border border-gray-400 font-bold">Doctor</th>
+							</tr>
+							<tr>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Category</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Date</th>
+								<th class="px-2 py-1 text-center border border-gray-400 font-bold">Time</th>
+							</tr>
+						</thead>
+						<!-- Use transition-group as tbody -->
+						<transition-group name="fade" tag="tbody">
+							<tr v-if="getVisiblePatients('obs').length === 0" key="empty">
+								<td colspan="5" class="text-center py-3 text-gray-800 italic">
+									No patients in this area
+								</td>
+							</tr>
+							<tr v-for="patient in getVisiblePatients('obs')" :key="patient.mrn" class="border-b hover:bg-gray-100 odd:bg-white even:bg-gray-50">
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.mrn || '-' }}</td>
+								<td
+									class="px-2 border border-gray-300 py-1 font-bold text-black text-center text-lg"
+									:style="{
+										backgroundColor:
+										patient.triagecat === '1 - Resuscitation' ? '#fca5a5' : // red-300
+										patient.triagecat === '2 - Emergency' ? '#ffa443' :    // orange-300
+										patient.triagecat === '3 - Urgent' ? '#fde047' :       // yellow-300
+										patient.triagecat === '4 - Semi Urgent' ? '#6aff8a' :  // green-300
+										patient.triagecat === '5 - Non Urgent' ? '#7dfffe' :   // cyan-300
+										''
+									}"
+								>
+								{{ patient.triagecat ? patient.triagecat.split(' - ')[0] : '-' }}
+								</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagedate || '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300">{{ patient.triagetime ? patient.triagetime.slice(0,5) : '-' }}</td>
+								<td class="px-1 py-1 text-lg font-semibold text-center border border-gray-300 uppercase">{{ patient.edoc || '-' }}</td>
+							</tr>
+						</transition-group>
+					</table>
+				</Card>
+			</div>
+		</div>
     </div>
 </template>
 
